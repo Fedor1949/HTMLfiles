@@ -1,4 +1,4 @@
-В эту программу в вставть функцию draw3 вставить код на js  с такимже функционалом как в коде на языке бейсие  в программе  которая находится ниже
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -260,53 +260,3 @@
 	</script>
 </body>
 </html>
-
-вотэта программа на языке бейсик , созданный код на язке js свяжите с кодом программы выше, но ничего из уже там сделанногоне исправляйте и пока не добавляйте.
-
-GR.OPEN  255, 0, 0, 0,1,1
-GR.SCREEN w, h
-Scale =1
-IF  Scale=1 THEN  
- GR.SCALE 1 ,1
- star_x=600 
- star_y=400 
-endif
-
-net=30
-stpn=2
-left = star_x-2580
-right= star_x+2580
-top = star_y-2580
-bottom = star_y+2580
-
-  Massa=5000
-  ! Massa=1200
-!   Massa=0.00001
-DO
-TIME Year$, Month$, Day$, Hour$, Minute$, Second$, WeekDay, isDST
-? val(second$)/60 %*2*pi()
-    if tmr>5.9 then  gr.cls
-FOR x = left TO right STEP net*2
- FOR y = TOp TO bottom STEP net*2
-  r=SQR((star_x-x)^2+(star_y-y)^2)
- ! IF r < 2600 THEN % удаляет из рассмотрения крайние узлы сетки пространства
-   shift =Massa*(1/(r^stpn+ Massa/1+0.0000000001))
-   shiftx = (star_x-x)*shift
-   shifty = (star_y-y)*shift
-
-   GR.COLOR 255,255,255,0,0
-   GR.CIRCLE tck, shiftx+x, shifty+y, 10
-
-tmr = val(second$)/60*2*pi()*(1-shift)
-!?tmr
-!?shift
-!if tmr>0.95 then Gr.cls
-Gr.line timer, shiftx+x, shifty+y,  shiftx+x +10*cos(tmr), shifty+y+10*sin(tmr)
-
-!  ENDIF % обрезает крайние узлы сетки пространства
- NEXT y
-NEXT x
-gr.render
-UNTIL 0
-GR.CLOSE 
-END
