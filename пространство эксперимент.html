@@ -1,0 +1,312 @@
+В эту программу в вставть функцию draw3 вставить код на js  с такимже функционалом как в коде на языке бейсие  в программе  которая находится ниже
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8">
+	<title>Координаты vs Пространство</title>
+	<style>
+		body {
+			margin: 0;
+			background: #000;
+			overflow: hidden;
+			color: #00dfdf;
+			font-family: sans-serif;
+		}
+		canvas {
+			display: block;
+			touch-action: none;
+		}
+		.menu {
+			position: absolute;
+			top: 20px;
+			left: 20px;
+			display: flex;
+			flex-direction: column;
+			gap: 10px;
+			z-index: 100;
+		}
+		.btn {
+			padding: 15px;
+			background: #111;
+			color: #00ffff;
+			border: 2px solid #008888;
+			border-radius: 8px;
+			text-align: center;
+			width: 200px;
+			font-weight: bold;
+			cursor: pointer;
+			pointer-events: auto;
+			user-select: none;
+			-webkit-user-select: none;
+		}
+		.btn.active {
+			background: #008888;
+			color: #000;
+		}
+        .slider-box {
+            background: #111;
+            padding: 15px;
+            border: 2px solid #008888;
+            border-radius: 8px;
+            width: 200px;
+            color: #00ffff;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        input[type=range] {
+            cursor: pointer;
+            width: 100%;
+        }
+		#eventBtn {
+			background: #440000;
+			border-color: #ff0000;
+			color: #ffaaaa;
+			margin-top: 20px;
+			display: block;
+		}
+		#resetBtn {
+			background: #001144;
+			border-color: #0055ff;
+			color: #aacccc;
+			display: block;
+		}
+	</style>
+</head>
+<body>
+
+	<div class="menu" id="uiBox">
+		<div id="btn1" class="btn active">1. 3D ОБЛАСТЬ</div>
+		<div id="btn2" class="btn">2. 3D СЕЧЕНИЕ</div>
+		<div id="btn3" class="btn">3. ВИД СВЕРХУ</div>
+        
+        <div class="slider-box">
+            <label for="massSlider">МАССА: <span id="massVal">650000</span></label>
+            <input type="range" id="massSlider" min="0" max="2000000" step="10000" value="650000">
+        </div>
+
+		<div id="eventBtn" class="btn">ЗАПУСК СОБЫТИЯ</div>
+		<div id="resetBtn" class="btn">СБРОС</div>
+	</div>
+
+	<canvas id="cv"></canvas>
+
+	<script>
+		const canvas = document.getElementById('cv');
+		const ctx = canvas.getContext('2d');
+		const uiBox = document.getElementById('uiBox');
+        const massSlider = document.getElementById('massSlider');
+        const massValDisplay = document.getElementById('massVal');
+
+		let w, h, mode = 1;
+		let sx = 100, sy = 50, isDrawing = false, lastX, lastY;
+		
+        // Единые параметры сетки для всех экранов
+        const size = 65;      // Масштаб ячейки
+        const gridStart = -2.8; // Граница ОТ
+        const gridEnd = 2.8;    // Граница ДО
+        const gridStep = 0.35; // Шаг цикла
+          let knas = 0.8    // гипотетический коэф. насыщения      
+		let eventActive = false, isFrozen = false, eventRadius = 0;
+		const lightSpeed = 4;
+
+		function resize() {
+			w = canvas.width = window.innerWidth;
+			h = canvas.height = window.innerHeight;
+		}
+
+        massSlider.oninput = function() {
+            massValDisplay.innerHTML = this.value;
+        }
+
+		function handleInput(ex, ey) {
+            if (ex >= massSlider.getBoundingClientRect().left && ex <= massSlider.getBoundingClientRect().right &&
+                ey >= massSlider.getBoundingClientRect().top && ey <= massSlider.getBoundingClientRect().bottom) {
+                return true;
+            }
+			for (let i = 1; i <= 3; i++) {
+				let b = document.getElementById('btn' + i);
+				let r = b.getBoundingClientRect();
+				if (ex >= r.left && ex <= r.right && ey >= r.top && ey <= r.bottom) {
+					mode = i; updateUI(); return true;
+				}
+			}
+			let eb = document.getElementById('eventBtn');
+			if (ex >= eb.getBoundingClientRect().left && ex <= eb.getBoundingClientRect().right &&
+                ey >= eb.getBoundingClientRect().top && ey <= eb.getBoundingClientRect().bottom) {
+				eventActive = true; isFrozen = false; eventRadius = 0;
+				eb.innerHTML = "ВОЛНА ИДЕТ..."; return true;
+			}
+			let rb = document.getElementById('resetBtn');
+			if (ex >= rb.getBoundingClientRect().left && ex <= rb.getBoundingClientRect().right &&
+                ey >= rb.getBoundingClientRect().top && ey <= rb.getBoundingClientRect().bottom) {
+				eventActive = false; isFrozen = false; eventRadius = 0;
+				document.getElementById('eventBtn').innerHTML = "ЗАПУСК СОБЫТИЯ";
+				return true;
+			}
+			return false;
+		}
+
+		function updateUI() {
+			for (let i = 1; i <= 3; i++) document.getElementById('btn' + i).classList.toggle('active', i === mode);
+		}
+
+		const onStart = (ex, ey) => {
+			if (handleInput(ex, ey)) return; isDrawing = true; lastX = ex; lastY = ey;
+		};
+		const onMove = (ex, ey) => {
+			if (isDrawing) {
+				sx += (ex - lastX); sy += (ey - lastY); lastX = ex; lastY = ey;
+			}
+		};
+
+		window.onmousedown = (e) => onStart(e.clientX, e.clientY);
+		window.onmousemove = (e) => onMove(e.clientX, e.clientY);
+		window.onmouseup = () => isDrawing = false;
+		window.ontouchstart = (e) => onStart(e.touches[0].clientX, e.touches[0].clientY);
+		window.ontouchmove = (e) => { e.preventDefault(); onMove(e.touches[0].clientX, e.touches[0].clientY); };
+		window.ontouchend = () => isDrawing = false;
+
+		window.onresize = resize;
+		resize(); updateUI();
+
+		function project(x, y, z) {
+			let u = sx / 500;
+			let xr = x * Math.cos(u) - y * Math.sin(u);
+			let yr = x * Math.sin(u) + y * Math.cos(u);
+			if (mode === 3) return { x: xr + w/2, y: yr + h/2 };
+			return {
+				x: (yr - xr) * 0.866 + w/2,
+				y: -((-xr - yr) * 0.5 + z) + h/2
+			};
+		}
+
+		function getSpacePos(x, y, z) {
+			let dx = -x, dy = -y, dz = -z;
+			let r = Math.sqrt(dx*dx + dy*dy + dz*dz);
+			let M = parseFloat(massSlider.value);
+			let shift = 0;
+			if ((eventActive || isFrozen) && r < eventRadius) {
+				shift = M / (Math.pow(r, 3) + M*knas);
+			}
+			return project(x + dx * shift, y + dy * shift, z + dz * shift);
+		}
+
+		function drawCommon(x, y, z) {
+			let pFixed = project(x, y, z);
+			ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+			ctx.beginPath(); ctx.arc(pFixed.x, pFixed.y, 4, 0, 6.28); ctx.stroke();
+			let pSpace = getSpacePos(x, y, z);
+			ctx.fillStyle = "rgba(255, 255, 255, 1)"; 
+			ctx.beginPath(); ctx.arc(pSpace.x, pSpace.y, 2, 0, 6.28); ctx.fill();
+		}
+
+		function drawWave() {
+			if (eventActive) {
+				eventRadius += lightSpeed;
+				if (eventRadius < 1500) {
+					let p = project(0,0,0);
+					ctx.beginPath(); ctx.arc(p.x, p.y, eventRadius * 0.7, 0, 6.28);
+					ctx.strokeStyle = "rgba(255, 0, 0, 0.5)"; ctx.stroke();
+				} else {
+					eventActive = false; isFrozen = true;
+					document.getElementById('eventBtn').innerHTML = "ЗАПУСК СОБЫТИЯ";
+				}
+			}
+		}
+
+		function draw1() { // ОБЛАСТЬ
+			for (let i = gridStart; i <= gridEnd; i += gridStep) {
+				for (let j = gridStart; j <= gridEnd; j += gridStep) {
+					for (let k = -2; k <= 2; k += gridStep) {
+						drawCommon(i * size, j * size, k * size);
+					}
+				}
+			}
+		}
+
+		function draw2() { // СЕЧЕНИЕ
+			let z = -sy;
+			let p1 = project(0, 0, 0), p2 = project(0, 0, z);
+			ctx.strokeStyle = 'red'; ctx.lineWidth = 2;
+			ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+			for (let i = gridStart; i <= gridEnd; i += gridStep) {
+				for (let j = gridStart; j <= gridEnd; j += gridStep) {
+					drawCommon(i * size, j * size, z);
+				}
+			}
+		}
+
+		function draw3() { // СВЕРХУ
+			for (let i = gridStart; i <= gridEnd; i += gridStep) {
+				for (let j = gridStart; j <= gridEnd; j += gridStep) {
+					drawCommon(i * size, j * size, 0);
+				}
+			}
+		}
+
+		function render() {
+			ctx.fillStyle = "#000"; ctx.fillRect(0, 0, w, h);
+			let sun = project(0,0,0);
+			ctx.fillStyle = "orange"; ctx.beginPath(); ctx.arc(sun.x, sun.y, 10, 0, 7); ctx.fill();
+			if (mode === 1) draw1(); 
+			else if (mode === 2) draw2(); 
+			else if (mode === 3) draw3();
+			drawWave();
+			requestAnimationFrame(render);
+		}
+		render();
+	</script>
+</body>
+</html>
+
+вотэта программа на языке бейсик , созданный код на язке js свяжите с кодом программы выше, но ничего из уже там сделанногоне исправляйте и пока не добавляйте.
+
+GR.OPEN  255, 0, 0, 0,1,1
+GR.SCREEN w, h
+Scale =1
+IF  Scale=1 THEN  
+ GR.SCALE 1 ,1
+ star_x=600 
+ star_y=400 
+endif
+
+net=30
+stpn=2
+left = star_x-2580
+right= star_x+2580
+top = star_y-2580
+bottom = star_y+2580
+
+  Massa=5000
+  ! Massa=1200
+!   Massa=0.00001
+DO
+TIME Year$, Month$, Day$, Hour$, Minute$, Second$, WeekDay, isDST
+? val(second$)/60 %*2*pi()
+    if tmr>5.9 then  gr.cls
+FOR x = left TO right STEP net*2
+ FOR y = TOp TO bottom STEP net*2
+  r=SQR((star_x-x)^2+(star_y-y)^2)
+ ! IF r < 2600 THEN % удаляет из рассмотрения крайние узлы сетки пространства
+   shift =Massa*(1/(r^stpn+ Massa/1+0.0000000001))
+   shiftx = (star_x-x)*shift
+   shifty = (star_y-y)*shift
+
+   GR.COLOR 255,255,255,0,0
+   GR.CIRCLE tck, shiftx+x, shifty+y, 10
+
+tmr = val(second$)/60*2*pi()*(1-shift)
+!?tmr
+!?shift
+!if tmr>0.95 then Gr.cls
+Gr.line timer, shiftx+x, shifty+y,  shiftx+x +10*cos(tmr), shifty+y+10*sin(tmr)
+
+!  ENDIF % обрезает крайние узлы сетки пространства
+ NEXT y
+NEXT x
+gr.render
+UNTIL 0
+GR.CLOSE 
+END
