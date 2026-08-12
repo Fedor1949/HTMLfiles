@@ -188,7 +188,7 @@
 			let M = parseFloat(massSlider.value);
 			let shift = 0;
 			if ((eventActive || isFrozen) && r < eventRadius) {
-				shift = M / (Math.pow(r, 3) + M*knas);
+				shift = M / (Math.pow(r, 2) + M*knas);
 			}
 			return project(x + dx * shift, y + dy * shift, z + dz * shift);
 		}
